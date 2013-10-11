@@ -4,6 +4,7 @@ import collection.JavaConversions._
 import com.amazonaws.services.ec2.model.{Filter, DescribeInstancesRequest, TerminateInstancesRequest, InstanceStateName, Tag, CreateTagsRequest, InstanceType, RunInstancesRequest}
 import scala.concurrent.Future
 import com.amazonaws.services.ec2.model
+import scala.Predef._
 
 case class Instance(underlying: model.Instance) {
 
@@ -64,53 +65,65 @@ object Instance {
       .map(_.map(instance => Instance(instance)))
   }
 
-  def request(implicit ec2: EC2): Future[Instance] = {
+  def request(name: String)(implicit ec2: EC2): Future[Instance] = {
     import ec2.executionContext
 
-    val instanceCreation = ec2.run(
-      new RunInstancesRequest()
-        .withInstanceType(InstanceType.M1Xlarge)
-        .withKeyName("xke-pricer")
-        .withMinCount(1)
-        .withMaxCount(1)
-        .withSecurityGroupIds("accept-all")
-        .withUserData(userData)
-        .withImageId("ami-c7c0d6b3"))
-      .map(result => Instance(result.getReservation.getInstances.head))
-      .flatMap(_.waitForInitialization)
+    val creationRequest = new RunInstancesRequest()
+      .withInstanceType(InstanceType.M1Xlarge)
+      .withKeyName("xke-pricer")
+      .withMinCount(1)
+      .withMaxCount(1)
+      .withSecurityGroupIds("accept-all")
+      .withUserData(userData)
+      .withImageId("ami-c7c0d6b3")
 
-    instanceCreation.onSuccess {
+    val nonTerminatedInstance =
+      for (response <- ec2.run(creationRequest))
+      yield Instance(response.getReservation.getInstances.head)
+
+    nonTerminatedInstance.onSuccess {
       case client: Instance => {
         val createTagsRequest = new CreateTagsRequest()
           .withResources(client.id)
           .withTags(
-          new Tag("origin", "sbt-plugin")
+          new Tag("Origin", "sbt-plugin"),
+          new Tag("Name", name),
+          new Tag("sbt-project", name)
         )
 
         ec2.run(createTagsRequest)
       }
     }
 
-    instanceCreation
+    nonTerminatedInstance
   }
 
-  def killAll(implicit ec2: EC2) {
+  def killAll(name: String)(implicit ec2: EC2): Future[Seq[Instance]] = {
     import ec2.executionContext
 
-    list.map(
-      instances => instances.map(_.terminate)
-    )
+    for {
+      instances <- list(name)
+      terminationRequest <- Future.sequence(instances.map(_.terminate))
+    }
+    yield terminationRequest
   }
 
-  def list(implicit ec2: EC2): Future[Seq[Instance]] = {
+  def list(name: String)(implicit ec2: EC2): Future[Seq[Instance]] = {
     import ec2.executionContext
 
-    ec2.run(new DescribeInstancesRequest().withFilters(new Filter("tag-value", List("sbt-plugin"))))
-      .map(_.getReservations
-      .flatMap(_.getInstances)
-      .map(Instance(_))
-      .toSeq
-    )
+    val listingRequest =
+      new DescribeInstancesRequest()
+        .withFilters(new Filter("tag-value", List("sbt-plugin", name))
+      )
+
+    for (listRequest <- ec2.run(listingRequest))
+    yield {
+      for {
+        reservations <- listRequest.getReservations
+        instance <- reservations.getInstances
+      } yield Instance(instance)
+
+    }.toSeq
   }
 
 }
