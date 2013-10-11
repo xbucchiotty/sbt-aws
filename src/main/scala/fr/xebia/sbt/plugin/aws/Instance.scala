@@ -73,37 +73,41 @@ object Instance {
       .map(_.map(instance => Instance(instance)))
   }
 
-  def request(name: String)(implicit ec2: EC2): Future[Instance] = {
+  def request(name: String, count: Int = 1)(implicit ec2: EC2): Future[List[Instance]] = {
     import ec2.executionContext
 
     val creationRequest = new RunInstancesRequest()
       .withInstanceType(InstanceType.M1Xlarge)
       .withKeyName("xke-pricer")
-      .withMinCount(1)
-      .withMaxCount(1)
+      .withMinCount(count)
+      .withMaxCount(count)
       .withSecurityGroupIds("accept-all")
       .withUserData(userData)
       .withImageId("ami-c7c0d6b3")
 
-    val nonTerminatedInstance =
+    val nonTerminatedInstances =
       for (response <- ec2.run(creationRequest))
-      yield Instance(response.getReservation.getInstances.head)
+      yield {
+        for (ec2Instance <- response.getReservation.getInstances.toList)
+        yield Instance(ec2Instance)
+      }
 
-    nonTerminatedInstance.onSuccess {
-      case client: Instance => {
-        val createTagsRequest = new CreateTagsRequest()
-          .withResources(client.id)
-          .withTags(
-          new Tag("Origin", "sbt-plugin"),
-          new Tag("Name", name),
-          new Tag("sbt-project", name)
-        )
-
-        ec2.run(createTagsRequest)
+    nonTerminatedInstances.onSuccess {
+      case instances: List[Instance] => {
+        instances.foreach(client => {
+          val createTagsRequest = new CreateTagsRequest()
+            .withResources(client.id)
+            .withTags(
+            new Tag("Origin", "sbt-plugin"),
+            new Tag("Name", name),
+            new Tag("sbt-project", name)
+          )
+          ec2.run(createTagsRequest)
+        })
       }
     }
 
-    nonTerminatedInstance
+    nonTerminatedInstances
   }
 
   def killAll(name: String)(implicit ec2: EC2): Future[Seq[Instance]] = {

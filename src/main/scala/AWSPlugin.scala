@@ -8,25 +8,31 @@ import sbt.complete.Parsers._
 
 object AwsPlugin extends Plugin {
 
-  private lazy val request = Command.command(
-    "awsRequest",
-    "Request a new Instance on AWS.",
-    "Request a new Instance on AWS.") {
-    state => {
-      state.log.info("AWS: Requesting an instance")
+  val countArg = (Space ~> IntBasic).?
+
+  private lazy val request = Command("awsRequest", ("count", "Number of instance requested (default 1)."), "Request a new Instance on AWS.")(_ => countArg) {
+    (state, arg) => {
+      val count = arg.collect {
+        case i if i > 0 => i
+      }.getOrElse(1)
+
+      state.log.info(s"AWS: Requesting $count instances")
 
       implicit val ec2 = EC2("https://ec2.eu-west-1.amazonaws.com")
       import ec2.executionContext
 
-      val instanceRequest = Instance.request(projectName(state))
+      val instancesRequest = Instance.request(projectName(state), count)
 
-      instanceRequest.onComplete(_ match {
-        case Success(instance: Instance) =>
-          state.log.info(s"AWS: new instance with id ${instance.id}")
+      instancesRequest.onComplete(_ match {
+        case Success(instances: List[Instance]) =>
+          instances.foreach(
+            instance => state.log.info(s"AWS: new instance with id ${instance.id}")
+          )
+
         case Failure(e) => state.log.error(e.toString)
       })
 
-      Await.result(instanceRequest, atMost = 5 minutes)
+      Await.result(instancesRequest, atMost = (30 * count) seconds)
 
       state
     }
@@ -67,6 +73,8 @@ object AwsPlugin extends Plugin {
       state
     }
   }
+
+  val killArg = (Space ~> IntBasic).?
 
   // a group of settings ready to be added to a Project
   // to automatically add them, do
