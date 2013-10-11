@@ -21,17 +21,25 @@ case class Instance(underlying: model.Instance) {
   def terminate(implicit ec2: EC2): Future[Instance] = {
     import ec2.executionContext
 
-    ec2.run(new TerminateInstancesRequest().withInstanceIds(underlying.getInstanceId))
-      .flatMap(_ => waitForTermination)
+    val terminationRequest = new TerminateInstancesRequest().withInstanceIds(underlying.getInstanceId)
+
+    for {
+      _ <- ec2.run(terminationRequest)
+      terminatedInstance <- waitForTermination
+    } yield terminatedInstance
+
   }
 
   def refresh(implicit ec2: EC2): Future[Instance] = {
     import ec2.executionContext
 
-    ec2
-      .run(new DescribeInstancesRequest().withInstanceIds(id))
-      .map(_.getReservations.flatMap(_.getInstances).head)
-      .map(newInstanceState => this.copy(underlying = newInstanceState))
+    val refreshRequest = new DescribeInstancesRequest().withInstanceIds(id)
+
+    for (response <- ec2.run(refreshRequest))
+    yield {
+      val refreshedInstance = response.getReservations.flatMap(_.getInstances).head
+      this.copy(underlying = refreshedInstance)
+    }
   }
 
   def waitForInitialization(implicit ec2: EC2): Future[Instance] = {
