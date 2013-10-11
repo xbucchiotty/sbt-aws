@@ -9,7 +9,7 @@ scalaVersion := "2.10.0"
 sbtPlugin := true
 
 libraryDependencies ++= Seq(
-  "com.amazonaws" % "aws-java-sdk" % "1.5.4",
+  "com.amazonaws" % "aws-java-sdk" % "1.6.1",
   "net.iharder" % "base64" % "2.3.8",
   "javax.mail" % "mail" % "1.4.1",
   "javax.activation" % "activation" % "1.1",
