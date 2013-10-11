@@ -7,12 +7,12 @@ packages:
 
 runcmd:
  - [update-alternatives, --set, java, /usr/lib/jvm/java-1.7.0-openjdk.x86_64/bin/java]
- - [wget, -O, /tmp/sbt.rpm, "http://scalasbt.artifactoryonline.com/scalasbt/sbt-native-packages/org/scala-sbt/sbt/0.12.4/sbt.rpm"]
+ - [wget, -O, /tmp/sbt.rpm, "http://scalasbt.artifactoryonline.com/scalasbt/sbt-native-packages/org/scala-sbt/sbt/%1$s/sbt.rpm"]
  - [rpm, -i, /tmp/sbt.rpm]
  - [wget, -O, /home/ec2-user/mvn.tar.gz, "http://mirror.olnevhost.net/pub/apache/maven/maven-3/3.1.0/binaries/apache-maven-3.1.0-bin.tar.gz"]
  - [cd, /home/ec2-user/]
  - [tar, -xvf, /home/ec2-user/mvn.tar.gz]
  - [sh, -xc, "echo \"export M2_HOME=/home/ec2-user/apache-maven-3.1.0\" >> /home/ec2-user/.bash_profile"]
  - [sh, -xc, "echo \"export PATH=/home/ec2-user/apache-maven-3.1.0/bin:\\$PATH\" >> /home/ec2-user/.bash_profile"]
- - [mkdir, /home/ec2-user/pricer]
- - [chown, -R, ec2-user, /home/ec2-user/pricer/]
+ - [mkdir, /home/ec2-user/%2$s]
+ - [chown, -R, ec2-user, /home/ec2-user/%2$s/]

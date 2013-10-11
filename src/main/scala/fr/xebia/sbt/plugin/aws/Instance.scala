@@ -5,6 +5,9 @@ import com.amazonaws.services.ec2.model.{Filter, DescribeInstancesRequest, Termi
 import scala.concurrent.Future
 import com.amazonaws.services.ec2.model
 import scala.Predef._
+import scala.io.Source
+import java.io.{StringWriter, InputStreamReader, File}
+import com.google.common.io.CharStreams
 
 case class Instance(underlying: model.Instance) {
 
@@ -63,7 +66,6 @@ case class Instance(underlying: model.Instance) {
 }
 
 object Instance {
-  lazy val userData = CloudInitUserDataBuilder.start.addCloudConfigFromFilePath("cloudinit/clienthost.txt").buildBase64UserData
 
   def apply(instanceId: String)(implicit ec2: EC2): Future[Option[Instance]] = {
     import ec2.executionContext
@@ -73,7 +75,7 @@ object Instance {
       .map(_.map(instance => Instance(instance)))
   }
 
-  def request(name: String, count: Int = 1)(implicit ec2: EC2): Future[List[Instance]] = {
+  def request(name: String, count: Int = 1, sbtVersion: String)(implicit ec2: EC2): Future[List[Instance]] = {
     import ec2.executionContext
 
     val creationRequest = new RunInstancesRequest()
@@ -82,7 +84,7 @@ object Instance {
       .withMinCount(count)
       .withMaxCount(count)
       .withSecurityGroupIds("accept-all")
-      .withUserData(userData)
+      .withUserData(userData(sbtVersion, name))
       .withImageId("ami-c7c0d6b3")
 
     val nonTerminatedInstances =
@@ -138,4 +140,19 @@ object Instance {
     }.toSeq
   }
 
+  private def userData(sbtVersion: String, projectName: String) =
+    CloudInitUserDataBuilder.start
+      .addCloudConfig(cloudConfigFile(sbtVersion, projectName))
+      .buildBase64UserData
+
+  def cloudConfigFile(sbtVersion: String, projectName: String): String = {
+
+    val cloudConfigAsStream = getClass.getClassLoader.getResourceAsStream("cloudinit/clienthost.txt")
+    val cloudConfig = new InputStreamReader(cloudConfigAsStream)
+
+    val sw = new StringWriter()
+    CharStreams.copy(cloudConfig, sw)
+
+    sw.toString.format(sbtVersion, projectName)
+  }
 }

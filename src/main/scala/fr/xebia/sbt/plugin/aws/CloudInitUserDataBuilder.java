@@ -75,83 +75,7 @@ public class CloudInitUserDataBuilder {
      * File types supported by CloudInit
      */
     public enum FileType {
-        /**
-         * <p>
-         * This content is "boothook" data. It is stored in a file under
-         * /var/lib/cloud and then executed immediately. This is the earliest
-         * "hook" available. Note, that there is no mechanism provided for
-         * running only once. The boothook must take care of this itself. It is
-         * provided with the instance id in the environment variable
-         * "INSTANCE_ID". This could be made use of to provide a
-         * 'once-per-instance'
-         * </p>
-         */
-        CLOUD_BOOTHOOK("text/cloud-boothook", "cloudinit-cloud-boothook.txt"), //
-        /**
-         * <p>
-         * This content is "cloud-config" data. See the examples for a commented
-         * example of supported config formats.
-         * </p>
-         * <p>
-         * Example: <a href=
-         * "http://bazaar.launchpad.net/~cloud-init-dev/cloud-init/trunk/view/head:/doc/examples/cloud-config.txt"
-         * >cloud-config.txt</a>
-         * </p>
-         */
-        CLOUD_CONFIG("text/cloud-config", "cloudinit-cloud-config.txt"), //
-        /**
-         * <p>
-         * This content is a "include" file. The file contains a list of urls,
-         * one per line. Each of the URLs will be read, and their content will
-         * be passed through this same set of rules. Ie, the content read from
-         * the URL can be gzipped, mime-multi-part, or plain text
-         * </p>
-         * <p>
-         * Example: <a href=
-         * "http://bazaar.launchpad.net/~cloud-init-dev/cloud-init/trunk/view/head:/doc/examples/include.txt"
-         * >include.txt</a>
-         * </p>
-         */
-        INCLUDE_URL("text/x-include-url", "cloudinit-x-include-url.txt"), //
-        /**
-         * <p>
-         * This is a 'part-handler'. It will be written to a file in
-         * /var/lib/cloud/data based on its filename. This must be python code
-         * that contains a list_types method and a handle_type method. Once the
-         * section is read the 'list_types' method will be called. It must
-         * return a list of mime-types that this part-handler handlers.
-         * </p>
-         * <p>
-         * Example: <a href=
-         * "http://bazaar.launchpad.net/~cloud-init-dev/cloud-init/trunk/view/head:/doc/examples/part-handler.txt"
-         * >part-handler.txt</a>
-         * </p>
-         */
-        PART_HANDLER("text/part-handler", "cloudinit-part-handler.txt"), //
-        /**
-         * <p>
-         * Script will be executed at "rc.local-like" level during first boot.
-         * rc.local-like means "very late in the boot sequence"
-         * </p>
-         * <p>
-         * Example: <a href=
-         * "http://bazaar.launchpad.net/~cloud-init-dev/cloud-init/trunk/view/head:/doc/examples/user-script.txt"
-         * >user-script.txt</a>
-         * </p>
-         */
-        SHELL_SCRIPT("text/x-shellscript", "cloudinit-userdata-script.txt"), //
-        /**
-         * <p>
-         * Content is placed into a file in /etc/init, and will be consumed by
-         * upstart as any other upstart job.
-         * </p>
-         * <p>
-         * Example: <a href=
-         * "http://bazaar.launchpad.net/~cloud-init-dev/cloud-init/trunk/view/head:/doc/examples/upstart-rclocal.txt"
-         * >upstart-rclocal.txt</a>
-         * </p>
-         */
-        UPSTART_JOB("text/upstart-job", "cloudinit-up()-job.txt");
+        CLOUD_CONFIG("text/cloud-config", "cloudinit-cloud-config.txt");
 
         /**
          * Name of the file.
@@ -237,45 +161,33 @@ public class CloudInitUserDataBuilder {
         this.charset = Preconditions.checkNotNull(charset, "'charset' can NOT be null");
     }
 
-    public CloudInitUserDataBuilder addCloudConfig(Readable cloudConfig) {
-        return addFile(FileType.CLOUD_CONFIG, cloudConfig);
-    }
-
     /**
      * Add a cloud-config file.
      *
-     * @param cloudConfigFilePath classpath relative file path (e.g.
-     *                            "com/my/company/cloud-config.txt")
+     * @param content content of the file
      * @return the builder
      * @throws IllegalArgumentException a cloud-config file was already added to this cloud-init mime
      *                                  message.
      * @see FileType#CLOUD_CONFIG
      */
-    public CloudInitUserDataBuilder addCloudConfigFromFilePath(String cloudConfigFilePath) {
-        InputStream cloudConfigAsStream = this.getClass().getClassLoader().getResourceAsStream(cloudConfigFilePath);
-        Preconditions.checkNotNull(cloudConfigAsStream, "'" + cloudConfigFilePath + "' not found in path");
-        Readable cloudConfig = new InputStreamReader(cloudConfigAsStream);
-
-        return addFile(FileType.CLOUD_CONFIG, cloudConfig);
+    public CloudInitUserDataBuilder addCloudConfig(String content) {
+        return addFile(FileType.CLOUD_CONFIG, content);
     }
 
-    public CloudInitUserDataBuilder addFile(FileType fileType, Readable in) throws IllegalArgumentException {
+    private CloudInitUserDataBuilder addFile(FileType fileType, String content) throws IllegalArgumentException {
         Preconditions.checkNotNull(fileType, "'fileType' can NOT be null");
-        Preconditions.checkNotNull(in, "'in' can NOT be null");
+        Preconditions.checkNotNull(content, "'content' can NOT be null");
         Preconditions.checkArgument(!alreadyAddedFileTypes.contains(fileType), "%s as already been added", fileType);
         alreadyAddedFileTypes.add(fileType);
 
         try {
-            StringWriter sw = new StringWriter();
-            CharStreams.copy(in, sw);
             MimeBodyPart mimeBodyPart = new MimeBodyPart();
-            String content = sw.toString();
 
             mimeBodyPart.setText(content, charset.name(), fileType.getMimeTextSubType());
             mimeBodyPart.setHeader("Content-Type", fileType.getMimeTextSubType() + "; charset=\"" + charset.name() + "\"; name=\"" + fileType.getFileName() + "\"");
             userDataMultipart.addBodyPart(mimeBodyPart);
 
-        } catch (IOException | MessagingException e) {
+        } catch (MessagingException e) {
             throw Throwables.propagate(e);
         }
         return this;

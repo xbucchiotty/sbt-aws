@@ -25,7 +25,11 @@ object AwsPlugin extends Plugin {
     implicit val ec2 = EC2("https://ec2.eu-west-1.amazonaws.com")
     import ec2.executionContext
 
-    val instancesRequest = Instance.request(projectName(state), count)
+    val instancesRequest = Instance.request(
+      projectName(state),
+      count,
+      sbtVersion(state)
+    )
 
     instancesRequest.onComplete(_ match {
       case Success(instances: List[Instance]) =>
@@ -45,17 +49,17 @@ object AwsPlugin extends Plugin {
     "awsList",
     "List all requested instances on EC2 with this plugin.",
     "List all requested instances on EC2 with this plugin.") {
-    state => {
+    implicit state => {
       implicit val ec2 = EC2("https://ec2.eu-west-1.amazonaws.com")
       import ec2.executionContext
 
-      val instancesRequest = Instance.list(projectName(state))
+      val instancesRequest = Instance.list(projectName)
 
       for (instances <- instancesRequest) instances match {
         case instances if instances.isEmpty => state.log.info("No instance found")
         case _ =>
           for ((instance, index) <- instances.zipWithIndex)
-          yield state.log.info(s"[$index]\t${instance.id}\tstatus:${instance.status}")
+          yield state.log.info(s"[$index]\t${instance.id}\tstatus:${instance.status}\t${instance.publicDNS}")
       }
 
 
@@ -72,14 +76,14 @@ object AwsPlugin extends Plugin {
     "awsKillAll",
     "Terminates all instances with tag origin='sbt-plugin' and with a tag value of the project.",
     "Terminates all instances with tag origin='sbt-plugin' and with a tag value of the project.") {
-    state => {
+    implicit state => {
       implicit val ec2 = EC2("https://ec2.eu-west-1.amazonaws.com")
       import ec2.executionContext
 
       state.log.info("AWS: Terminating all instances")
 
       Await.ready(
-        Instance.killAll(projectName(state)),
+        Instance.killAll(projectName),
         atMost = 2 minutes
       )
 
@@ -121,7 +125,10 @@ object AwsPlugin extends Plugin {
     Keys.commands ++= Seq(request, list, killAll, kill)
   )
 
-  private def projectName(state: State) =
+  private def projectName(implicit state: State) =
     Project.extract(state).get(Keys.name)
+
+  private def sbtVersion(implicit state: State) =
+    Project.extract(state).get(Keys.sbtVersion)
 
 }
