@@ -70,7 +70,7 @@ object Instance {
     val instanceCreation = ec2.run(
       new RunInstancesRequest()
         .withInstanceType(InstanceType.M1Xlarge)
-        .withKeyName("")
+        .withKeyName("xke-pricer")
         .withMinCount(1)
         .withMaxCount(1)
         .withSecurityGroupIds("accept-all")
@@ -97,10 +97,19 @@ object Instance {
   def killAll(implicit ec2: EC2) {
     import ec2.executionContext
 
+    list.map(
+      instances => instances.map(_.terminate)
+    )
+  }
+
+  def list(implicit ec2: EC2): Future[Seq[Instance]] = {
+    import ec2.executionContext
+
     ec2.run(new DescribeInstancesRequest().withFilters(new Filter("tag-value", List("sbt-plugin"))))
       .map(_.getReservations
       .flatMap(_.getInstances)
-      .map(instance => Instance(instance).terminate)
+      .map(Instance(_))
+      .toSeq
     )
   }
 

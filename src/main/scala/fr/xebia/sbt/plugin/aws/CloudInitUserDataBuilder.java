@@ -252,8 +252,7 @@ public class CloudInitUserDataBuilder {
      * @see FileType#CLOUD_CONFIG
      */
     public CloudInitUserDataBuilder addCloudConfigFromFilePath(String cloudConfigFilePath) {
-
-        InputStream cloudConfigAsStream = Thread.currentThread().getContextClassLoader().getResourceAsStream(cloudConfigFilePath);
+        InputStream cloudConfigAsStream = this.getClass().getClassLoader().getResourceAsStream(cloudConfigFilePath);
         Preconditions.checkNotNull(cloudConfigAsStream, "'" + cloudConfigFilePath + "' not found in path");
         Readable cloudConfig = new InputStreamReader(cloudConfigAsStream);
 
@@ -270,13 +269,13 @@ public class CloudInitUserDataBuilder {
             StringWriter sw = new StringWriter();
             CharStreams.copy(in, sw);
             MimeBodyPart mimeBodyPart = new MimeBodyPart();
-            mimeBodyPart.setText(sw.toString(), charset.name(), fileType.getMimeTextSubType());
-            mimeBodyPart.setFileName(fileType.getFileName());
+            String content = sw.toString();
+
+            mimeBodyPart.setText(content, charset.name(), fileType.getMimeTextSubType());
+            mimeBodyPart.setHeader("Content-Type", fileType.getMimeTextSubType() + "; charset=\"" + charset.name() + "\"; name=\"" + fileType.getFileName() + "\"");
             userDataMultipart.addBodyPart(mimeBodyPart);
 
-        } catch (IOException e) {
-            throw Throwables.propagate(e);
-        } catch (MessagingException e) {
+        } catch (IOException | MessagingException e) {
             throw Throwables.propagate(e);
         }
         return this;
@@ -288,9 +287,7 @@ public class CloudInitUserDataBuilder {
             userDataMimeMessage.writeTo(baos);
             return new String(baos.toByteArray(), this.charset);
 
-        } catch (MessagingException e) {
-            throw Throwables.propagate(e);
-        } catch (IOException e) {
+        } catch (MessagingException | IOException e) {
             throw Throwables.propagate(e);
         }
     }
