@@ -68,7 +68,7 @@ object Instance {
   def apply(instanceId: String)(implicit ec2: EC2): Future[Option[Instance]] = {
     import ec2.executionContext
 
-    ec2.run(new DescribeInstancesRequest().withFilters(new Filter("instanceId", List(instanceId))))
+    ec2.run(new DescribeInstancesRequest().withInstanceIds(List(instanceId)))
       .map(result => result.getReservations.flatMap(_.getInstances).headOption)
       .map(_.map(instance => Instance(instance)))
   }
