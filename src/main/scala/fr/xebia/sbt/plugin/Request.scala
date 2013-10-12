@@ -6,7 +6,9 @@ import fr.xebia.sbt.plugin.aws.{Instance, EC2}
 import scala.util.{Failure, Success}
 import scala.concurrent.Await
 import scala.concurrent.duration._
-import Util.{projectName, sbtVersion}
+import fr.xebia.sbt.plugin.Util._
+import scala.util.Success
+import scala.util.Failure
 
 object Request {
 
@@ -23,25 +25,30 @@ object Request {
 
     state.log.info(s"AWS: Requesting $count instances")
 
-    implicit val ec2 = EC2("https://ec2.eu-west-1.amazonaws.com")
+    implicit val ec2 = EC2(endpoint(state))
     import ec2.executionContext
 
-    val instancesRequest = Instance.request(
-      projectName(state),
-      count,
-      sbtVersion(state)
-    )
+    keypair(state).map(keypair => {
+      val instancesRequest = Instance.request(
+        projectName(state),
+        keypair,
+        sbtVersion(state),
+        count
+      )
 
-    instancesRequest.onComplete(_ match {
-      case Success(instances: List[Instance]) =>
-        instances.foreach(
-          instance => state.log.info(s"AWS: new instance with id ${instance.id}")
-        )
+      instancesRequest.onComplete(_ match {
+        case Success(instances: List[Instance]) =>
+          instances.foreach(
+            instance => state.log.info(s"AWS: new instance with id ${instance.id}")
+          )
 
-      case Failure(e) => state.log.error(e.toString)
-    })
+        case Failure(e) => state.log.error(e.toString)
+      })
 
-    Await.result(instancesRequest, atMost = (30 * count) seconds)
+      Await.result(instancesRequest, atMost = (30 * count) seconds)
+    }).getOrElse {
+      state.log.error(s"AWS: setting awsKeypair is required.")
+    }
 
     state
   })

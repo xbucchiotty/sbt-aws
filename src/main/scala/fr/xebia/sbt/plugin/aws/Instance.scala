@@ -75,12 +75,12 @@ object Instance {
       .map(_.map(instance => Instance(instance)))
   }
 
-  def request(name: String, count: Int = 1, sbtVersion: String)(implicit ec2: EC2): Future[List[Instance]] = {
+  def request(name: String, keypair: String, sbtVersion: String, count: Int = 1)(implicit ec2: EC2): Future[List[Instance]] = {
     import ec2.executionContext
 
     val creationRequest = new RunInstancesRequest()
       .withInstanceType(InstanceType.M1Xlarge)
-      .withKeyName("xke-pricer")
+      .withKeyName(keypair)
       .withMinCount(count)
       .withMaxCount(count)
       .withSecurityGroupIds("accept-all")

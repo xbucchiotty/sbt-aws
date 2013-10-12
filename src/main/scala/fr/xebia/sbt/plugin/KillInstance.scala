@@ -5,6 +5,7 @@ import sbt.Command
 import fr.xebia.sbt.plugin.aws.{Instance, EC2}
 import scala.concurrent.Await
 import scala.concurrent.duration._
+import Util.endpoint
 
 object KillInstance {
 
@@ -15,7 +16,7 @@ object KillInstance {
     ("id", "Instance of the Id to kill."),
     "Terminates an instance with the given id.")(_ => killArg) {
     (state, instanceId) => {
-      implicit val ec2 = EC2("https://ec2.eu-west-1.amazonaws.com")
+      implicit val ec2 = EC2(endpoint(state))
       import ec2.executionContext
 
       state.log.info(s"AWS: Trying to terminate instance $instanceId")

@@ -4,7 +4,7 @@ import sbt.Command
 import fr.xebia.sbt.plugin.aws.{Instance, EC2}
 import scala.concurrent.Await
 import scala.concurrent.duration._
-import Util.projectName
+import Util.{projectName,endpoint}
 
 object KillAll {
 
@@ -13,7 +13,7 @@ object KillAll {
     "Terminates all instances with tag origin='sbt-plugin' and with a tag value of the project.",
     "Terminates all instances with tag origin='sbt-plugin' and with a tag value of the project.") {
     implicit state => {
-      implicit val ec2 = EC2("https://ec2.eu-west-1.amazonaws.com")
+      implicit val ec2 = EC2(endpoint)
       import ec2.executionContext
 
       state.log.info("AWS: Terminating all instances")
