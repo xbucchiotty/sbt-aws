@@ -2,7 +2,7 @@ package fr.xebia.sbt.plugin.aws
 
 import com.amazonaws.auth.EnvironmentVariableCredentialsProvider
 import com.amazonaws.services.ec2.AmazonEC2Client
-import com.amazonaws.services.ec2.model.{DescribeInstancesResult, DescribeInstancesRequest, TerminateInstancesResult, TerminateInstancesRequest, CreateTagsRequest, RunInstancesResult, RunInstancesRequest}
+import com.amazonaws.services.ec2.model._
 import scala.concurrent.{Future, ExecutionContext}
 
 class EC2(client: AmazonEC2Client)(implicit val executionContext: ExecutionContext) {
@@ -22,6 +22,18 @@ class EC2(client: AmazonEC2Client)(implicit val executionContext: ExecutionConte
   def run(request: TerminateInstancesRequest): Future[TerminateInstancesResult] = {
     Future {
       client.terminateInstances(request)
+    }
+  }
+
+  def run(request: StopInstancesRequest): Future[StopInstancesResult] = {
+    Future {
+      client.stopInstances(request)
+    }
+  }
+
+  def run(request: StartInstancesRequest): Future[StartInstancesResult] = {
+    Future {
+      client.startInstances(request)
     }
   }
 

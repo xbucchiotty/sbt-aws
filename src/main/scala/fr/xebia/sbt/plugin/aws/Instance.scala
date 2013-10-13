@@ -1,12 +1,11 @@
 package fr.xebia.sbt.plugin.aws
 
 import collection.JavaConversions._
-import com.amazonaws.services.ec2.model.{Filter, DescribeInstancesRequest, TerminateInstancesRequest, InstanceStateName, Tag, CreateTagsRequest, InstanceType, RunInstancesRequest}
+import com.amazonaws.services.ec2.model._
 import scala.concurrent.Future
 import com.amazonaws.services.ec2.model
 import scala.Predef._
-import scala.io.Source
-import java.io.{StringWriter, InputStreamReader, File}
+import java.io.{StringWriter, InputStreamReader}
 import com.google.common.io.CharStreams
 
 case class Instance(underlying: model.Instance) {
@@ -14,6 +13,8 @@ case class Instance(underlying: model.Instance) {
   def isRunning: Boolean = InstanceStateName.Running.equals(InstanceStateName.fromValue(status))
 
   def isTerminated: Boolean = InstanceStateName.Terminated.equals(InstanceStateName.fromValue(status))
+
+  def isStopped: Boolean = InstanceStateName.Stopped.equals(InstanceStateName.fromValue(status))
 
   def publicDNS: String = underlying.getPublicDnsName
 
@@ -33,6 +34,30 @@ case class Instance(underlying: model.Instance) {
 
   }
 
+  def stop(implicit ec2: EC2): Future[Instance] = {
+    import ec2.executionContext
+
+    val stopRequest = new StopInstancesRequest().withInstanceIds(underlying.getInstanceId)
+
+    for {
+      _ <- ec2.run(stopRequest)
+      stoppedInstance <- waitForStop
+    } yield stoppedInstance
+
+  }
+
+  def start(implicit ec2: EC2): Future[Instance] = {
+    import ec2.executionContext
+
+    val startRequest = new StartInstancesRequest().withInstanceIds(underlying.getInstanceId)
+
+    for {
+      _ <- ec2.run(startRequest)
+      startedInstance <- waitForInitialization
+    } yield startedInstance
+
+  }
+
   def refresh(implicit ec2: EC2): Future[Instance] = {
     import ec2.executionContext
 
@@ -47,6 +72,10 @@ case class Instance(underlying: model.Instance) {
 
   def waitForInitialization(implicit ec2: EC2): Future[Instance] = {
     waitFor(clientHost => clientHost.isRunning)
+  }
+
+  def waitForStop(implicit ec2: EC2): Future[Instance] = {
+    waitFor(clientHost => clientHost.isStopped)
   }
 
   def waitForTermination(implicit ec2: EC2): Future[Instance] = {
@@ -110,16 +139,6 @@ object Instance {
     }
 
     nonTerminatedInstances
-  }
-
-  def killAll(name: String)(implicit ec2: EC2): Future[Seq[Instance]] = {
-    import ec2.executionContext
-
-    for {
-      instances <- list(name)
-      terminationRequest <- Future.sequence(instances.map(_.terminate))
-    }
-    yield terminationRequest
   }
 
   def list(name: String)(implicit ec2: EC2): Future[Seq[Instance]] = {

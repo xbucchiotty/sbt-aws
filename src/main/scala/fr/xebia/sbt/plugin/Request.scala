@@ -2,8 +2,7 @@ package fr.xebia.sbt.plugin
 
 import sbt.complete.Parsers._
 import sbt.Command
-import fr.xebia.sbt.plugin.aws.{Instance, EC2}
-import scala.util.{Failure, Success}
+import fr.xebia.sbt.plugin.aws.Instance
 import scala.concurrent.Await
 import scala.concurrent.duration._
 import fr.xebia.sbt.plugin.Util._
@@ -25,13 +24,13 @@ object Request {
 
     state.log.info(s"AWS: Requesting $count instances")
 
-    implicit val ec2 = EC2(endpoint(state))
+    implicit val ec2 = Util.client(state)
     import ec2.executionContext
 
     keypair(state).map(keypair => {
       val instancesRequest = Instance.request(
         projectName(state),
-        keypair,
+        keypair.getName.split("[.]", 2).head,
         sbtVersion(state),
         count
       )

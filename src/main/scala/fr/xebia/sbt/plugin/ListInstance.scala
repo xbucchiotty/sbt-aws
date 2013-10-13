@@ -1,10 +1,10 @@
 package fr.xebia.sbt.plugin
 
 import sbt.Command
-import fr.xebia.sbt.plugin.aws.{Instance, EC2}
+import fr.xebia.sbt.plugin.aws.Instance
 import scala.concurrent.Await
 import scala.concurrent.duration._
-import Util.{projectName,endpoint}
+import Util.projectName
 
 object ListInstance {
 
@@ -13,7 +13,7 @@ object ListInstance {
     "List all requested instances on EC2 with this plugin.",
     "List all requested instances on EC2 with this plugin.") {
     implicit state => {
-      implicit val ec2 = EC2(endpoint)
+      implicit val ec2 = Util.client
       import ec2.executionContext
 
       val instancesRequest = Instance.list(projectName)

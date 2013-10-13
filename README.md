@@ -24,12 +24,14 @@ Don't forget to import settings with:
 
 ## Parameters
 
-* awsEndpoint          : URL Endoit for AWS API. (Default to https://ec2.eu-west-1.amazonaws.com)
-* awsKeypair           : [required] name of the keypair to use
+* awsEndpoint : URL Endoit for AWS API. (Default to https://ec2.eu-west-1.amazonaws.com)
+* awsKeypair : [required] path to the keypair to use
 
 ## Tasks
 
 * awsRequest <count=1> : request new VM on EC2
-* awsList              : list all VM linked to this project
+* awsList : list all VM linked to this project
 * awsKill <instanceId> : terminate the VM
-* awsKillAll           : terminate all VM linked to this project
+* awsStart <instanceId> : terminate the VM
+* awsStop <instanceId> : terminate the VM
+* awsKillAll : terminate all VM linked to this project
