@@ -13,7 +13,7 @@ object StopInstance {
   lazy val command = Command(
     "awsStop",
     ("id", "Instance of the Id to stop."),
-    "Stops an instance with the given id.")(_ => arg) {
+    "Stop an instance with the given id.")(_ => arg) {
     (state, instanceId) => {
       implicit val ec2 = Util.client(state)
       import ec2.executionContext

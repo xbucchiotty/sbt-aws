@@ -22,7 +22,7 @@ object ListInstance {
         case instances if instances.isEmpty => state.log.info("No instance found")
         case _ =>
           for ((instance, index) <- instances.zipWithIndex)
-          yield state.log.info(s"[$index]\t${instance.id}\tstatus:${instance.status}\t${instance.publicDNS}")
+          yield state.log.info(s"[$index]\t${instance.id}\tstatus:${instance.status}\t${instance.instanceType}\t${instance.publicDNS}")
       }
 
 

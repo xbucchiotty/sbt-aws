@@ -13,6 +13,9 @@ object Util {
   def endpoint(implicit state: State) =
     Project.extract(state).get(AwsPlugin.awsRegion)
 
+  def instanceType(implicit state: State) =
+    Project.extract(state).get(AwsPlugin.awsInstanceType)
+
   def client(implicit state: State): EC2 =
     EC2(endpoint)
 

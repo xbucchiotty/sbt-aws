@@ -20,6 +20,8 @@ case class Instance(underlying: model.Instance) {
 
   def status: String = underlying.getState.getName
 
+  def instanceType: String = underlying.getInstanceType
+
   def id: String = underlying.getInstanceId
 
   def terminate(implicit ec2: EC2): Future[Instance] = {
@@ -104,11 +106,11 @@ object Instance {
       .map(_.map(instance => Instance(instance)))
   }
 
-  def request(name: String, keypair: String, sbtVersion: String, count: Int = 1)(implicit ec2: EC2): Future[List[Instance]] = {
+  def request(name: String, keypair: String, sbtVersion: String, instanceType: String, count: Int = 1)(implicit ec2: EC2): Future[List[Instance]] = {
     import ec2.executionContext
 
     val creationRequest = new RunInstancesRequest()
-      .withInstanceType(InstanceType.M1Xlarge)
+      .withInstanceType(InstanceType.fromValue(instanceType))
       .withKeyName(keypair)
       .withMinCount(count)
       .withMaxCount(count)

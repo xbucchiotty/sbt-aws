@@ -25,13 +25,14 @@ Don't forget to import settings with:
 ## Parameters
 
 * awsEndpoint : URL Endoit for AWS API. (Default to https://ec2.eu-west-1.amazonaws.com)
-* awsKeypair : [required] path to the keypair to use
+* awsKeypair : Path to the keypair to be associated with the instance (no default).
+* awsInstanceType : Instance type requested (see com.amazonaws.services.ec2.model.InstanceType string description), default to t1.micro
 
 ## Tasks
 
-* awsRequest <count=1> : request new VM on EC2
-* awsList : list all VM linked to this project
-* awsKill <instanceId> : terminate the VM
-* awsStart <instanceId> : terminate the VM
-* awsStop <instanceId> : terminate the VM
-* awsKillAll : terminate all VM linked to this project
+* awsRequest <count=1> : Request a new Instance on EC2.
+* awsList : List all requested instances on EC2 with this plugin.
+* awsKill <instanceId> : Terminates an instance with the given id.
+* awsStart <instanceId> : Start an instance with the given id.
+* awsStop <instanceId> : Stop an instance with the given id.
+* awsKillAll : Terminates all instances with tag origin='sbt-plugin' and with a tag value of the project.

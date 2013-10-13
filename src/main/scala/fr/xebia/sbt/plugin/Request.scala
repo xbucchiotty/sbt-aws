@@ -16,7 +16,7 @@ object Request {
   lazy val command = Command(
     "awsRequest",
     ("count", "Number of instance requested (default 1)."),
-    "Request a new Instance on AWS.")(_ => countArg)((state, arg) => {
+    "Request a new Instance on EC2.")(_ => countArg)((state, arg) => {
 
     val count = arg.collect {
       case i if i > 0 => i
@@ -32,6 +32,7 @@ object Request {
         projectName(state),
         keypair.getName.split("[.]", 2).head,
         sbtVersion(state),
+        instanceType(state),
         count
       )
 

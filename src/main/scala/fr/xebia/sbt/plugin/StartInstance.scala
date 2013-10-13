@@ -13,7 +13,7 @@ object StartInstance {
   lazy val command = Command(
     "awsStart",
     ("id", "Instance of the Id to start."),
-    "Starts an instance with the given id.")(_ => arg) {
+    "Start an instance with the given id.")(_ => arg) {
     (state, instanceId) => {
       implicit val ec2 = Util.client(state)
       import ec2.executionContext
